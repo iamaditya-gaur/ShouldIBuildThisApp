@@ -1,0 +1,32 @@
+keyword,seed,depth,market,autocomplete_rank,first_seen_query,english_query_proxy
+metal detector & gold finder,metal detector,1,au,1,metal detector & gold finder,False
+metal detector,metal detector,1,au,2,metal detector,False
+metal detector emf,metal detector,1,au,9,metal detector emf,False
+metal detector & gold finder,metal detector,1,ca,1,metal detector & gold finder,False
+metal detector emf,metal detector,1,ca,1,metal detector emf,False
+metal detector,metal detector,1,ca,2,metal detector,False
+metal detector & gold finder,metal detector,1,de,1,metal detector & gold finder,True
+metal detector,metal detector,1,de,2,metal detector,True
+metal detector emf,metal detector,1,de,6,metal detector emf,True
+metal detector & gold finder,metal detector,1,fr,1,metal detector & gold finder,True
+metal detector emf,metal detector,1,fr,1,metal detector emf,True
+metal detector,metal detector,1,fr,2,metal detector,True
+metal detector & gold finder,metal detector,1,gb,1,metal detector & gold finder,False
+metal detector emf,metal detector,1,gb,1,metal detector emf,False
+metal detector,metal detector,1,gb,4,metal detector,False
+metal detector,metal detector,1,ie,1,metal detector,False
+metal detector & gold finder,metal detector,1,ie,1,metal detector & gold finder,False
+metal detector emf,metal detector,1,ie,6,metal detector emf,False
+metal detector,metal detector,1,nl,1,metal detector,True
+metal detector & gold finder,metal detector,1,nl,1,metal detector & gold finder,True
+metal detector emf,metal detector,1,nl,8,metal detector emf,True
+metal detector,metal detector,1,us,1,metal detector,False
+metal detector & gold finder,metal detector,1,us,2,metal detector,False
+metal detector emf,metal detector,1,us,3,metal detector,False
+metal detector game,metal detector,1,us,4,metal detector,False
+metal detector & gold scanner,metal detector,1,us,5,metal detector,False
+metal detector map tracker,metal detector,1,us,6,metal detector,False
+metal detector smart tools,metal detector,1,us,7,metal detector,False
+metal detector gold,metal detector,1,us,8,metal detector,False
+groundvision metal detector ai,metal detector,1,us,9,metal detector,False
+metal detector and spy camera,metal detector,1,us,10,metal detector,False

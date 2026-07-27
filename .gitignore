@@ -1,0 +1,47 @@
+# -----------------------------------------------------------------------------
+# Research output stays on this machine.
+#
+# The repo is public. These directories contain the seed topics, the niche
+# rankings and DECISION.md — i.e. which app is about to get built. That is not
+# a security risk (no credentials are involved anywhere in this pipeline) but it
+# is a competitive one. Schema is documented via the *.example.csv files, which
+# are committed and use a throwaway seed topic.
+# -----------------------------------------------------------------------------
+data/*
+!data/*.example.csv
+!data/.gitkeep
+
+output/*
+!output/.gitkeep
+
+manual/NOTES*.md
+
+# caches and databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# secrets — nothing here needs one today, but never let that change silently
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Your actual config holds your seed topics — i.e. which niches you are
+# researching. Copy config.example.yaml to config.yaml and edit that.
+config.yaml

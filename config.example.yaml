@@ -1,0 +1,158 @@
+# =============================================================================
+#  ASO PIPELINE — the only file you need to edit to change a run.
+#  You never have to open a .py file. If you find yourself wanting to, tell me
+#  instead — it means something belongs in here that isn't.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SEEDS — the starting phrases. Everything else is discovered from these.
+# -----------------------------------------------------------------------------
+# Use 3-6. Plain phrases, the way a real person would type them into App Store
+# search. Two words is usually the sweet spot.
+#
+#   GOOD: "habit tracker", "sleep sounds", "meal planner"
+#   TOO BROAD: "fitness", "productivity"   -> everything competes, nothing is a niche
+#   TOO NARROW: "habit tracker for left-handed runners" -> no search volume to find
+#
+# If these produce fewer than 100 keywords, Phase 1 stops and tells you the
+# seeds are too narrow rather than proceeding with thin data.
+seeds:
+  - REPLACE_ME
+
+# -----------------------------------------------------------------------------
+# MARKETS — which App Store storefronts to analyse.
+# -----------------------------------------------------------------------------
+# All storefront IDs below were verified by hand against the live endpoint on
+# 2026-07-26. Do not guess new ones — a wrong ID returns a valid-looking but
+# completely empty response.
+#
+# `english_query_proxy: true` means "we are asking this store English questions."
+# For Germany/France/Netherlands that is a real limitation, not a formality:
+# people there mostly search in their own language. Low competition in those
+# markets therefore means "little English-language competition" and NOTHING
+# about the market overall. The scoring refuses to call those markets empty.
+#
+# To do proper German research, don't touch the code — copy this file, put
+# German seeds in it, and set primary to `de`.
+
+markets:
+  primary:
+    code: us
+    storefront: 143441
+    language: en
+    english_query_proxy: false
+
+  secondary:
+    # --- English cluster: keywords transfer directly. Real, comparable signal.
+    - { code: ca, storefront: 143455, language: en, english_query_proxy: false }
+    - { code: gb, storefront: 143444, language: en, english_query_proxy: false }
+    - { code: au, storefront: 143460, language: en, english_query_proxy: false }
+    - { code: ie, storefront: 143449, language: en, english_query_proxy: false }
+    # --- Western Europe: English queries only. Treat as a weak lower bound.
+    - { code: de, storefront: 143443, language: de, english_query_proxy: true }
+    - { code: fr, storefront: 143442, language: fr, english_query_proxy: true }
+    - { code: nl, storefront: 143452, language: nl, english_query_proxy: true }
+
+# -----------------------------------------------------------------------------
+# PHASE 1 — how wide to cast the keyword net
+# -----------------------------------------------------------------------------
+expansion:
+  depth: 2                      # 2 = suggestions of suggestions. 3 gets slow fast.
+  alphabet_fanout_depth: 1      # append a-z + space at this depth only.
+                                #   1  -> ~200-400 requests  (recommended)
+                                #   2  -> ~2000+ requests    (several hours)
+  depth2_top_n: 60              # only the best 60 depth-1 results get expanded
+  min_keyword_chars: 3
+  target_min_keywords: 100      # below this, Phase 1 stops and warns you
+  echo_top_n: 75               # how many keywords to re-check in secondary markets
+
+# -----------------------------------------------------------------------------
+# PHASE 2 — competitor capture
+# -----------------------------------------------------------------------------
+competition:
+  top_n_apps: 10                # apps to capture per keyword
+  progress_every: 25
+
+  # --- in-app purchases and subtitles -------------------------------------
+  # Neither exists in Apple's JSON API. Verified: all 44 fields returned for
+  # "I Am Sober" (a subscription app) say only "Free" and carry no subtitle.
+  # Both ARE on the public App Store listing page, so we fetch that page — one
+  # plain GET, no browser, no scraping framework — for the apps that actually
+  # define a niche, and leave the long tail null rather than spend an hour and
+  # 500MB on apps that rank once for one obscure keyword.
+  #
+  # "Niche-defining" = appears in the most keyword top-10s. Those are the apps
+  # a real competitor analysis would look at anyway.
+  enrich_top_apps: 100          # 0 disables this entirely (has_iap/subtitle -> null)
+
+# -----------------------------------------------------------------------------
+# PHASE 3 — scoring. These weights get reviewed with you at the Phase 3 gate
+# before the scoring code is written. Placeholder values until then.
+# -----------------------------------------------------------------------------
+scoring:
+  weights:
+    median_rating_count: null
+    pct_over_10k_ratings: null
+    publisher_diversity: null
+    median_rating: null
+    median_days_since_update: null
+    pct_exact_keyword_in_title: null
+  difficulty_bands: [Very Easy, Easy, Moderate, Hard, Very Hard]
+
+# -----------------------------------------------------------------------------
+# PHASE 4 / 6 — manual steps
+# -----------------------------------------------------------------------------
+manual:
+  asa_market: us                # Apple Search Ads shows one storefront at a time.
+                                # Doing all 8 by hand costs ~4h for little gain.
+  asa_keywords_per_niche: 30
+  revenue_apps_per_niche: 5
+  revenue_max_rows: 15          # this is a PAID data pull — keep it tight
+
+# -----------------------------------------------------------------------------
+# PHASE 5 — reviews
+# -----------------------------------------------------------------------------
+reviews:
+  apps_per_niche: 5
+  max_pages: 10                 # 50 reviews per page
+  min_star: 1
+  max_star: 3                   # we mine complaints, so 1-3 stars only
+
+# -----------------------------------------------------------------------------
+# NETWORKING — read the comments before raising these numbers.
+# -----------------------------------------------------------------------------
+# Apple does not return "429 Too Many Requests". It returns HTTP 200 with an
+# empty body. Measured on one URL, 2026-07-26:
+#
+#     t+0     empty      (after ~15 rapid requests)
+#     t+120s  empty      6 fast retries at 8s intervals: 0/6 recovered
+#     t+300s  OK, 50 reviews
+#     t+600s  OK, 50 reviews
+#     t+1200s empty again
+#
+# Note the last line. This is NOT a clean cooldown you can wait out — success
+# is intermittent even on a rested URL. So: one empty response proves nothing,
+# several sweeps are needed to converge, and a success is worth caching hard
+# because you may not get it again.
+#
+# Going faster does not get you more data. It gets you silence that looks like
+# data. These limits are deliberately conservative.
+network:
+  requests_per_minute: 15
+  reviews_requests_per_minute: 10     # reviews throttle harder than search
+  jitter_seconds: [0.4, 1.6]
+  timeout_seconds: 25
+  transport_retries: 3                # for real network errors only
+  empty_response_cooldown_seconds: 330  # measured recovery was ~300s; +10% margin
+  empty_response_max_sweeps: 3          # re-sweep the failure queue this many times
+  fail_rate_abort_threshold: 0.20       # >20% failures in a phase = stop and tell me
+
+# -----------------------------------------------------------------------------
+# CACHE
+# -----------------------------------------------------------------------------
+cache:
+  path: data/cache.db
+  ttl_days: 30                  # set to 0 to never expire
+  # Cache is keyed on URL *plus* storefront. Same URL + different storefront is
+  # a different response — keying on URL alone would collide all 8 markets into
+  # one entry and silently return US data for every market.
