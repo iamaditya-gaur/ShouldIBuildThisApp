@@ -45,3 +45,6 @@ credentials.json
 # Your actual config holds your seed topics — i.e. which niches you are
 # researching. Copy config.example.yaml to config.yaml and edit that.
 config.yaml
+
+# Archived previous runs — same competitive-secrecy reasoning as data/ and output/.
+runs/

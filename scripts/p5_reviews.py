@@ -99,7 +99,10 @@ def main():
 
     # ---- fetch -----------------------------------------------------------
     reviews: dict[str, list] = {n: [] for n in niches}
-    stats: list[dict] = []
+    # Counted inside fetch_page so that pages recovered by the cooldown sweeps
+    # are included. See the note above the stats table below — this used to be
+    # tallied in the first pass only, and undercounted badly.
+    pages_ok: dict[int, int] = {t["app_id"]: 0 for t in targets}
     cooldown = CooldownQueue(net["empty_response_cooldown_seconds"],
                              net["empty_response_max_sweeps"])
 
@@ -114,6 +117,7 @@ def main():
                 r["app_id"] = app["app_id"]
                 r["app_name"] = app["name"]
                 reviews[app["niche"]].append(r)
+        pages_ok[app["app_id"]] += 1
         return True
 
     print()
@@ -131,19 +135,6 @@ def main():
                 if empty_pages >= 2 and got_pages > 0:
                     break
 
-        known = app["known_ratings"]
-        if got_pages == 0 and pd.notna(known) and known > 100:
-            # This is the failure mode that matters: the app plainly has
-            # reviews, so an empty feed is Apple throttling us, not evidence.
-            log_error(PHASE, f"app:{app['app_id']}",
-                      f"no_reviews_but_app_has_{int(known)}_ratings_THROTTLED",
-                      market=market["code"])
-
-        stats.append({"niche": app["niche"], "app_id": app["app_id"],
-                      "app_name": app["name"], "known_rating_count": known,
-                      "pages_fetched": got_pages,
-                      "reviews_kept": sum(1 for r in reviews[app["niche"]]
-                                          if r["app_id"] == app["app_id"])})
         print(f"    [{i}/{len(targets)}] {str(app['name'])[:32]:34} "
               f"{got_pages} pages")
         client.check_failure_rate()
@@ -154,6 +145,30 @@ def main():
         for app, page in leftover:
             log_error(PHASE, f"reviews:{app['app_id']}:p{page}",
                       "empty_after_all_cooldown_sweeps", market=market["code"])
+
+    # ---- coverage table, counted AFTER the sweeps -------------------------
+    # This must come after the cooldown sweeps, not during the first pass.
+    # Sweeps recover pages, so a table written before them reports coverage we
+    # actually have as coverage we lack — and "0 reviews" reads as "users have
+    # no complaints about this app", which is the exact lie this pipeline
+    # exists to avoid. Measured on a real run: this table claimed one app
+    # returned 0 pages / 0 reviews while its 114 sweep-recovered reviews were
+    # sitting in the JSONL the whole time.
+    stats: list[dict] = []
+    for app in targets:
+        got_pages = pages_ok[app["app_id"]]
+        known = app["known_ratings"]
+        if got_pages == 0 and pd.notna(known) and known > 100:
+            # The failure mode that matters: the app plainly has reviews, so an
+            # empty feed after every sweep is Apple throttling us, not evidence.
+            log_error(PHASE, f"app:{app['app_id']}",
+                      f"no_reviews_but_app_has_{int(known)}_ratings_THROTTLED",
+                      market=market["code"])
+        stats.append({"niche": app["niche"], "app_id": app["app_id"],
+                      "app_name": app["name"], "known_rating_count": known,
+                      "pages_fetched": got_pages,
+                      "reviews_kept": sum(1 for r in reviews[app["niche"]]
+                                          if r["app_id"] == app["app_id"])})
 
     # ---- write ------------------------------------------------------------
     written = []
