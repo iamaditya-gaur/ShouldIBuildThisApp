@@ -49,7 +49,10 @@ config.yaml
 # Archived previous runs — same competitive-secrecy reasoning as data/ and output/.
 runs/
 
-# Internal working notes live outside this repo. Never commit them here.
+# Internal working notes. GitHub cannot make a single file private inside a
+# public repo, so private/ lives in the working copy and is never pushed. Same
+# mechanism as data/ and runs/ above. Check with: git check-ignore -v private/
+private/
 IMPROVEMENTS*.md
 NOTES*.md
 notes/
