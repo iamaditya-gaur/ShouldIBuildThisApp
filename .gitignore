@@ -48,3 +48,8 @@ config.yaml
 
 # Archived previous runs — same competitive-secrecy reasoning as data/ and output/.
 runs/
+
+# Internal working notes live outside this repo. Never commit them here.
+IMPROVEMENTS*.md
+NOTES*.md
+notes/
