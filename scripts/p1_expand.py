@@ -183,9 +183,33 @@ def main():
     # US and Australia, so re-expanding there costs 8x the requests to rediscover
     # the same list. Instead we take the best keywords and ask each market where
     # they rank — which is the part that actually differs.
+    # Selection matters more than it looks. Sorting by autocomplete_rank alone
+    # does almost nothing: most discovered keywords tie at rank 1, and Python's
+    # sort is stable, so the "top 75" collapses to insertion order — which is
+    # SEED order. Measured on a real 12-seed run: all 75 echoed keywords came
+    # from the first 6 seeds and the other 6 were never tested abroad at all,
+    # while 34 of the 75 were app titles, which trivially rank 1 in every store.
+    # The result looked like international coverage and was nothing of the kind.
+    #
+    # So: drop probable app titles, then round-robin across seeds so every seed
+    # is represented before any seed gets a second slot.
     primary_kws = sorted((r for r in rows.values() if r["market"] == primary["code"]),
                          key=lambda r: r["autocomplete_rank"])
-    echo_list = primary_kws[:exp["echo_top_n"]]
+    by_seed: dict[str, list] = {}
+    for r in primary_kws:
+        if not r.get("probably_app_name"):
+            by_seed.setdefault(r["seed"], []).append(r)
+    echo_list = []
+    for i in range(max((len(v) for v in by_seed.values()), default=0)):
+        if len(echo_list) >= exp["echo_top_n"]:
+            break
+        for seed_rows in by_seed.values():
+            if i < len(seed_rows) and len(echo_list) < exp["echo_top_n"]:
+                echo_list.append(seed_rows[i])
+    # Fall back to the old behaviour only if every keyword looked like an app
+    # title — an empty echo would be worse than a biased one.
+    if not echo_list:
+        echo_list = primary_kws[:exp["echo_top_n"]]
     secondaries = [m for m in all_markets(cfg) if not m["is_primary"]]
 
     if secondaries and echo_list:

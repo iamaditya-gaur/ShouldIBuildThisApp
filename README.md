@@ -226,7 +226,7 @@ Note the last line. This is not a clean cooldown you can wait out. So a response
 The autocomplete URL is identical for all eight countries. Only a header differs. Keying on the URL would have collapsed all eight markets into one row and quietly served US data for Germany, forever, with no error anywhere.
 
 **3. Niches are grouped by which apps rank, not by shared words.**
-Two phrases with no words in common are the same market if the App Store returns the same apps for both. `pdf to word` and `convert document` share nothing linguistically and everything commercially. The clustering is agglomerative on Jaccard overlap of the top 10, at a threshold of 0.15, because measured same-niche overlap ran between 0.10 and 0.30.
+Two phrases with no words in common are the same market if the App Store returns the same apps for both. `flight tracker` and `check my gate` share nothing linguistically and everything commercially. The clustering is agglomerative on Jaccard overlap of the top 10, at a threshold of 0.15, because measured same-niche overlap ran between 0.10 and 0.30.
 
 **4. The ranking is re-run under two other weightings.**
 A niche that only wins under one set of weights is a weighting artifact, not a finding. The output shows where each niche lands under all three, so you can see which ones move.
