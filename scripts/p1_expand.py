@@ -59,9 +59,12 @@ def looks_like_brand(kw: str, seeds: list[str]) -> bool:
 # names is telling you something important: people search that category by brand,
 # not by description. That is a finding, and deleting it would hide it.
 APP_TITLE_MARKERS = re.compile(
-    r"[:®™|]"                      # punctuation basically only app titles use
+    r"[:®™|・･]"                    # punctuation basically only app titles use
     r"|\s[-–—]\s"                  # "acme — some app"
     r"|\b(?:llc|inc|ltd|magazine)\b"
+    r"|\bby\s+\w+\s*$"             # "sleep sounds by acmelabs" — vendor attribution
+    r"|\+\s*$"                     # "sleep sounds+" — a version marker, not a phrase
+    r"|,"                          # "sleep sounds, acme-audio" — a brand tacked on
 )
 
 

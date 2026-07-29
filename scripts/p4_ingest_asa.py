@@ -20,6 +20,7 @@ the two conflict, the measured number wins and my proxy was wrong — and knowin
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -50,6 +51,55 @@ def generate(niches: list[str], per_niche: int) -> None:
     # Real search phrases only. An app's own name is not something you can
     # research in Apple Search Ads in any useful way.
     pick = scored[scored.niche.isin(niches) & ~scored.probably_app_name.fillna(False)]
+
+    # Second pass, and the one that actually works. Phase 1's flag is pure
+    # punctuation heuristics, because Phase 1 runs before we have seen a single
+    # app name. By now Phase 2 has captured ~1,000 real ones, so we can just ask:
+    # is this "keyword" simply an app sitting in our own competitor table?
+    # Measured on a real run, the punctuation flag passed 54 of 54 exported rows
+    # as genuine while roughly a third were titles like "sleep sounds by <brand>"
+    # — a third of the user's manual hour spent researching other people's brands.
+    comp_path = DATA / "02_competitors.csv"
+    if comp_path.exists():
+        def norm(t: str) -> str:
+            return re.sub(r"[^a-z0-9]+", " ", str(t).lower()).strip()
+        comp = pd.read_csv(comp_path)
+        names = {norm(n) for n in comp["name"].dropna()}
+
+        # Do NOT drop a keyword just because it appears inside an app name.
+        # Developers stuff generic phrases into their titles precisely because
+        # those phrases are what people search — "sleep sounds" sits inside a
+        # dozen app names and is still the single most real query in its niche.
+        # An earlier version of this filter tested that direction and wiped out
+        # two entire niches. What actually marks a title is a BRAND token — a
+        # word that turns up in app names but belongs to nobody's search
+        # vocabulary (a studio name, an invented product word).
+        vocab = {w for s in load_config()["seeds"] for w in norm(s).split()}
+        vocab |= {"free", "app", "apps", "best", "pro", "lite", "plus", "online",
+                  "offline", "easy", "simple", "fast", "my", "the", "for", "to",
+                  "and", "with", "of", "in", "on", "a", "an", "document",
+                  "documents", "doc", "docs", "photo", "photos", "text", "files",
+                  "maker", "creator", "tool", "tools", "batch", "quick", "smart",
+                  "gratuit", "gratis", "reader", "editor", "scanner", "converter"}
+        tok = pd.Series([w for n in names for w in n.split()]).value_counts()
+        # A brand is rare across the market AND not a category word.
+        brands = {w for w, c in tok.items() if c <= 3 and w not in vocab and len(w) > 3}
+
+        # Name matching of any kind is hopeless in these markets: apps here are
+        # NAMED after generic phrases ("Sleep Sounds Pro"), so both
+        # containment directions and even exact equality throw away real
+        # queries. Measured: containment alone destroyed two whole niches, and
+        # an app named exactly "sleep sounds" would veto the phrase "sleep sounds".
+        # A rare, non-category word is the only trustworthy signal of a brand.
+        def is_title(kw: str) -> bool:
+            return bool(set(norm(kw).split()) & brands)
+
+        before = len(pick)
+        pick = pick[~pick.keyword.map(is_title)]
+        if before - len(pick):
+            print(f"  Dropped {before - len(pick)} keyword(s) that are really app "
+                  f"names or carry a competitor's brand")
+
     pick = (pick.sort_values("opportunity_proxy", ascending=False)
                 .groupby("niche").head(per_niche))
 
